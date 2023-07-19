@@ -17,7 +17,7 @@ var con = mysql.createConnection({
 export const router = Router()
 
 router.all('/teste', (req, res) => {
-
+console.log(res)
 
 })
 
@@ -82,9 +82,10 @@ router.all('/', (req, res) => {
 
             }
         );
-        console.log("orçamento gravado");
-        console.log(dataAtual);
+        console.log("orçamento gravado"+dataAtual);
+
     }
+
 });
 
 
@@ -107,10 +108,77 @@ router.get('/produtos', (req, res) => {
    
 
 })
+  
 
-router.get('/orcamentos', (req, res) => {
-    con.query(`SELECT cdor.CODIGO, cdcl.NOME, cdor.DATA_CADASTRO, cdor.TOTAL_GERAL FROM clsegteste_vendas.cad_orca cdor join clsegteste_publico.cad_clie cdcl on cdor.cliente = cdcl.codigo where cdor.CONTATO = 'REACT';`, (err: string, response: any) => {
-        if (err) throw err;
-        res.json(response)
-    })
-})
+import { Request, Response } from 'express';
+
+interface Orcamento {
+  CODIGO: string;
+  NOME: string;
+  DATA_CADASTRO: string;
+  TOTAL_GERAL: number;
+  produtos: string[];
+}
+
+router.get('/orcamentos', (req: Request, res: Response) => {
+  con.query(
+    `SELECT
+    cdor.CODIGO,
+    cdcl.NOME,
+    DATE_FORMAT(cdor.DATA_CADASTRO,'%d-%m-%Y') DATA_CADASTRO,
+    cdor.TOTAL_GERAL,
+    pro.PRODUTO,
+    cprod.descricao,
+    pro.quantidade,
+    pro.unitario,
+    pro.desconto,
+    pro.total_liq
+    FROM clsegteste_vendas.cad_orca cdor
+  JOIN clsegteste_publico.cad_clie cdcl ON cdor.cliente = cdcl.codigo
+  LEFT JOIN clsegteste_vendas.pro_orca pro ON cdor.CODIGO = pro.ORCAMENTO
+   join  clsegteste_publico.cad_prod cprod on cprod.codigo = pro.produto
+  WHERE cdor.CONTATO = 'REACT';`,
+    (err:string, response:any) => {
+      if (err) throw err;
+
+      const orcamentos: Orcamento[] = [];
+      let orcamentoAtual: string | null = null;
+
+      response.forEach((row: any) => {
+        // Verifica se é um novo orçamento
+        if (row.CODIGO !== orcamentoAtual) {
+          // Cria um novo objeto de orçamento
+          orcamentoAtual = row.CODIGO;
+          orcamentos.push({
+            CODIGO: row.CODIGO,
+            NOME: row.NOME,
+            DATA_CADASTRO: row.DATA_CADASTRO,
+            TOTAL_GERAL: row.TOTAL_GERAL,
+            produtos: [],
+          });
+        }
+
+        // Adiciona o produto ao orçamento atual
+        if (row.PRODUTO) {
+          const produto:any = {
+            codigo: row.PRODUTO,
+            descricao: row.descricao, // Inclui a descrição do produto
+            quantidade:row.quantidade,
+            unitario: row.unitario,
+            total: row.total_liq,
+            desconto: row.desconto
+
+          };
+          orcamentos[orcamentos.length - 1].produtos.push(produto);
+        }
+      });
+
+      res.json(orcamentos);
+      
+    }
+  );
+});
+
+  
+
+
