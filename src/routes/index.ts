@@ -2,16 +2,18 @@ import { Router } from "express";
 
 const mysql = require('mysql')
 
-var con = mysql.createConnection({
+var estoque = "clsegteste_estoque";
+var vendas ="clsegteste_vendas";
+var publico = "clsegteste_publico";
+
+var con = mysql.createPool({
+  connectionLimit : 10,
     host: "177.125.218.237",
     user: "intersig",
     password: "Ganapataye",
-
-    database: "clsegteste_estoque",
-    database2: "clsegteste_publico",
-    database3: "clsegteste_vendas",
-
-
+    database: estoque,
+    database2: publico,
+    database3: vendas,
 })
 
 export const router = Router()
@@ -47,7 +49,7 @@ router.all('/', (req, res) => {
         return console.log("valores inválidos");
     } else {
         con.query(
-            `INSERT INTO clsegteste_vendas.cad_orca ` +
+            `INSERT INTO ${vendas}.cad_orca ` +
             `(cliente, total_produtos, DESC_PROD, TOTAL_GERAL, DATA_CADASTRO, SITUACAO,VENDEDOR,CONTATO , DATA_INICIO,DATA_PEDIDO, DATA_APROV, QTDE_PARCELAS)  
             VALUES (?, ?, ?, ?, ?, ?, ? , ? , ? ,?, ?,?)`,
             [client, total_produtos, desc_prod, total, dataAtual, 'EA',vendedor,'REACT', dataAtual, dataAtual,dataAtual,1],
@@ -62,7 +64,7 @@ router.all('/', (req, res) => {
                     }
                     let j = i + 1;
                     con.query(
-                        `INSERT INTO clsegteste_vendas.pro_orca (orcamento, sequencia, produto, unitario, quantidade, preco_tabela,tabela, total_liq, unit_orig) ` +
+                        `INSERT INTO ${vendas}.pro_orca (orcamento, sequencia, produto, unitario, quantidade, preco_tabela,tabela, total_liq, unit_orig) ` +
                         `VALUES (?, ?, ?, ? , ?, ?, ?, ?, ?)`,
                         [codOrca, j, produto[i].prod, produto[i].preco, produto[i].qtd, produto[i].preco,1,produto[i].totalProduto, produto[i].preco ],
                         (err: string, response: any) => {
@@ -72,7 +74,7 @@ router.all('/', (req, res) => {
                 }
 
                 con.query(
-                    `INSERT INTO clsegteste_vendas.par_orca(orcamento, parcela, valor, vencimento, tipo_receb )`+
+                    `INSERT INTO ${vendas}.par_orca(orcamento, parcela, valor, vencimento, tipo_receb )`+
                     `VALUES (?,?,?,?,?)`,
                     [codOrca, 1,total,dataAtual,1 ],
                     (err: string, response:any)=>{
@@ -91,23 +93,49 @@ router.all('/', (req, res) => {
 
 
 router.get('/produtos', (req, res) => {
-    con.query('select cp.codigo,cp.descricao,tp.PRECO from clsegteste_publico.cad_prod cp join clsegteste_publico.prod_tabprecos tp on tp.PRODUTO = cp.CODIGO where tp.TABELA = 1;', (err: string, response: any) => {
+    con.query(`select cp.codigo,cp.descricao,tp.PRECO from ${publico}.cad_prod cp join ${publico}.prod_tabprecos tp on tp.PRODUTO = cp.CODIGO where tp.TABELA = 1;`, (err: string, response: any) => {
         if (err) throw err;
         res.json(response)
     })
 
-    router.get('/clientes', (req, res) => {
-        con.query('select codigo,nome ,cpf,cep, cidade,bairro, rg,celular,telefone_com from clsegteste_publico.cad_clie;', (err: string, response: any) => {
-            if (err) throw err;
-            res.json(response)
-        })
-    })
-
-
-
-   
-
 })
+
+router.get('/clientes', (req, res) => {
+  con.query(`select codigo,nome ,cpf,cep, cidade,bairro, rg,celular,telefone_com from ${publico}.cad_clie;`, (err: string, response: any) => {
+      if (err) throw err;
+      res.json(response)
+  })
+})
+
+router.get('/servicos', (req, res) => {
+  con.query(`SELECT CODIGO, APLICACAO,VALOR from ${publico}.cad_serv;`, (err: string, response: any) => {
+      if (err) throw err;
+      res.json(response)
+  })
+})
+
+
+router.get('/vendedor', (req, res) => {
+  con.query(`SELECT CODIGO, APELIDO from ${publico}.cad_vend;`, (err: string, response: any) => {
+      if (err) throw err;
+      res.json(response)
+  })
+})
+router.get('/vendedor', (req, res) => {
+  con.query(`SELECT CODIGO, descricao from ${publico}.tipos_os;`, (err: string, response: any) => {
+      if (err) throw err;
+      res.json(response)
+  })
+})
+
+
+
+
+
+//SELECT CODIGO, descricao from tipos_os;
+
+
+
   
 
 import { Request, Response } from 'express';
@@ -133,10 +161,10 @@ router.get('/orcamentos', (req: Request, res: Response) => {
     pro.unitario,
     pro.desconto,
     pro.total_liq
-    FROM clsegteste_vendas.cad_orca cdor
-  JOIN clsegteste_publico.cad_clie cdcl ON cdor.cliente = cdcl.codigo
-  LEFT JOIN clsegteste_vendas.pro_orca pro ON cdor.CODIGO = pro.ORCAMENTO
-   join  clsegteste_publico.cad_prod cprod on cprod.codigo = pro.produto
+    FROM ${vendas}.cad_orca cdor
+  JOIN ${publico}.cad_clie cdcl ON cdor.cliente = cdcl.codigo
+  LEFT JOIN ${vendas}.pro_orca pro ON cdor.CODIGO = pro.ORCAMENTO
+   join  ${publico}.cad_prod cprod on cprod.codigo = pro.produto
   WHERE cdor.CONTATO = 'REACT';`,
     (err:string, response:any) => {
       if (err) throw err;
