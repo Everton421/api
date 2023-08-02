@@ -19,7 +19,7 @@ var con = mysql.createPool({
 export const router = Router()
 
 router.all('/teste', (req, res) => {
-console.log(res)
+console.log(req.body)
 
 })
 
