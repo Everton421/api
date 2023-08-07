@@ -1,4 +1,5 @@
 import { Router } from "express";
+//import mysql, { MysqlError } from 'mysql';
 
 const mysql = require('mysql')
 
@@ -100,12 +101,7 @@ router.get('/produtos', (req, res) => {
 
 })
 
-router.get('/clientes', (req, res) => {
-  con.query(`select codigo,nome ,cpf,cep, cidade,bairro, rg,celular,telefone_com from ${publico}.cad_clie;`, (err: string, response: any) => {
-      if (err) throw err;
-      res.json(response)
-  })
-})
+
 
 router.get('/servicos', (req, res) => {
   con.query(`SELECT CODIGO, APLICACAO,VALOR from ${publico}.cad_serv;`, (err: string, response: any) => {
@@ -121,8 +117,8 @@ router.get('/vendedor', (req, res) => {
       res.json(response)
   })
 })
-router.get('/vendedor', (req, res) => {
-  con.query(`SELECT CODIGO, descricao from ${publico}.tipos_os;`, (err: string, response: any) => {
+router.get('/veiculos', (req, res) => {
+  con.query(`select codigo, cliente, placa,modelo, ano from ${publico}.cad_veic;`, (err: string, response: any) => {
       if (err) throw err;
       res.json(response)
   })
@@ -207,6 +203,51 @@ router.get('/orcamentos', (req: Request, res: Response) => {
   );
 });
 
-  
+
+interface Cliente {
+  CODIGO: string;
+  NOME: string;
+  CPF: string;
+  RG: string;
+
+  VEICULOS: Array<{ PLACA: string; ANO: string }>;
+}
+router.get('/clientes', (req: Request, res: Response) => {
+  con.query(
+    `
+    SELECT 
+      clie.codigo, clie.cpf, clie.rg,  clie.nome, IFNULL(vei.placa, '0') AS placa, IFNULL(vei.ano, '0000-00-00') AS ano
+    FROM ${publico}.cad_clie clie
+    LEFT JOIN ${publico}.cad_veic vei ON vei.cliente = clie.codigo;
+  `,
+    (err: string, response: any[]) => {
+      if (err) {
+        res.status(500).json({ error: 'Erro ao buscar dados no banco de dados' });
+      } else {
+        const clientesArray: Cliente[] = [];
+
+        response.forEach((row) => {
+          const existingCliente = clientesArray.find(
+            (cliente) => cliente.CODIGO === row.codigo
+          );
+
+          if (existingCliente) {
+            existingCliente.VEICULOS.push({ PLACA: row.placa, ANO: row.ano });
+          } else {
+            clientesArray.push({
+              CODIGO: row.codigo,
+              NOME: row.nome,
+              CPF: row.cpf,
+              RG: row.rg,
+              VEICULOS: [{ PLACA: row.placa, ANO: row.ano }],
+            });
+          }
+        });
+
+        res.json(clientesArray);
+      }
+    }
+  );
+});
 
 
