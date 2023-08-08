@@ -210,7 +210,7 @@ interface Cliente {
   CPF: string;
   RG: string;
 
-  VEICULOS: Array<{ PLACA: string; ANO: string }>;
+  VEICULOS: Array<{ CODIGO: string, PLACA: string; ANO: string }>;
 }
 router.get('/clientes', (req: Request, res: Response) => {
   con.query(
@@ -232,14 +232,14 @@ router.get('/clientes', (req: Request, res: Response) => {
           );
 
           if (existingCliente) {
-            existingCliente.VEICULOS.push({ PLACA: row.placa, ANO: row.ano });
+            existingCliente.VEICULOS.push({ CODIGO: row.codigo , PLACA: row.placa, ANO: row.ano });
           } else {
             clientesArray.push({
               CODIGO: row.codigo,
               NOME: row.nome,
               CPF: row.cpf,
               RG: row.rg,
-              VEICULOS: [{ PLACA: row.placa, ANO: row.ano }],
+              VEICULOS: [{ CODIGO: row.codigo ,PLACA: row.placa, ANO: row.ano }],
             });
           }
         });
