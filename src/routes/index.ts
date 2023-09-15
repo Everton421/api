@@ -3,18 +3,35 @@ import { Router } from "express";
 
 const mysql = require('mysql')
 
-var estoque = "clsegteste_estoque";
-var vendas ="clsegteste_vendas";
-var publico = "clsegteste_publico";
+var estoque:string = "fortaleza_estoque";
+var vendas:string ="fortaleza_vendas";
+var publico:string = "fortaleza_publico";
+
 
 var con = mysql.createPool({
   connectionLimit : 10,
-    host: "177.125.218.237",
-    user: "intersig",
-    password: "Ganapataye",
+    host: "192.168.100.106",
+    user: "root",
+    password: "Nileduz",
     database: estoque,
     database2: publico,
     database3: vendas,
+})
+
+
+
+var estoque2:string = "wp_estoque";
+var vendas2:string ="wp_vendas";
+var publico2:string = "wp_publico";
+
+var con2 = mysql.createPool({
+  connectionLimit : 10,
+    host: "192.168.100.106",
+    user: "root",
+    password: "Nileduz",
+    database: estoque2,
+    database2: publico2,
+    database3: vendas2,
 })
 
 export const router = Router()
@@ -23,8 +40,6 @@ router.all('/teste', (req, res) => {
 console.log(req.body)
 
 })
-
-
 
 router.all('/', (req, res) => {
     const client: number = req.body.cliente.codigo;
@@ -92,7 +107,6 @@ router.all('/', (req, res) => {
 });
 
 
-
 router.get('/produtos', (req, res) => {
     con.query(`select cp.codigo,cp.descricao,tp.PRECO from ${publico}.cad_prod cp join ${publico}.prod_tabprecos tp on tp.PRODUTO = cp.CODIGO where tp.TABELA = 1;`, (err: string, response: any) => {
         if (err) throw err;
@@ -101,15 +115,12 @@ router.get('/produtos', (req, res) => {
 
 })
 
-
-
 router.get('/servicos', (req, res) => {
   con.query(`SELECT CODIGO, APLICACAO,VALOR from ${publico}.cad_serv;`, (err: string, response: any) => {
       if (err) throw err;
       res.json(response)
   })
 })
-
 
 router.get('/vendedor', (req, res) => {
   con.query(`SELECT CODIGO, APELIDO from ${publico}.cad_vend;`, (err: string, response: any) => {
@@ -123,17 +134,7 @@ router.get('/veiculos', (req, res) => {
       res.json(response)
   })
 })
-
-
-
-
-
 //SELECT CODIGO, descricao from tipos_os;
-
-
-
-  
-
 import { Request, Response } from 'express';
 
 interface Orcamento {
@@ -143,7 +144,6 @@ interface Orcamento {
   TOTAL_GERAL: number;
   produtos: string[];
 }
-
 router.get('/orcamentos', (req: Request, res: Response) => {
   con.query(
     `SELECT
@@ -203,20 +203,22 @@ router.get('/orcamentos', (req: Request, res: Response) => {
   );
 });
 
-
+/* 
 interface Cliente {
   CODIGO: string;
   NOME: string;
   CPF: string;
   RG: string;
-
-  VEICULOS: Array<{ CODIGO: string, PLACA: string; ANO: string }>;
+  VEICULOS: Array<{ CODIGO: string; PLACA: string; ANO: string }>;
 }
+
 router.get('/clientes', (req: Request, res: Response) => {
   con.query(
     `
     SELECT 
-      clie.codigo, clie.cpf, clie.rg,  clie.nome, IFNULL(vei.placa, '0') AS placa, IFNULL(vei.ano, '0000-00-00') AS ano
+      clie.codigo, clie.cpf, clie.rg,  clie.nome, 
+      IFNULL(vei.CODIGO, '0') AS VEICULO_CODIGO, IFNULL(vei.placa, '0') AS placa, 
+      IFNULL(vei.ano, '0000-00-00') AS ano
     FROM ${publico}.cad_clie clie
     LEFT JOIN ${publico}.cad_veic vei ON vei.cliente = clie.codigo;
   `,
@@ -232,14 +234,14 @@ router.get('/clientes', (req: Request, res: Response) => {
           );
 
           if (existingCliente) {
-            existingCliente.VEICULOS.push({ CODIGO: row.codigo , PLACA: row.placa, ANO: row.ano });
+            existingCliente.VEICULOS.push({ CODIGO: row.VEICULO_CODIGO, PLACA: row.placa, ANO: row.ano });
           } else {
             clientesArray.push({
               CODIGO: row.codigo,
               NOME: row.nome,
               CPF: row.cpf,
               RG: row.rg,
-              VEICULOS: [{ CODIGO: row.codigo ,PLACA: row.placa, ANO: row.ano }],
+              VEICULOS: [{ CODIGO: row.VEICULO_CODIGO, PLACA: row.placa, ANO: row.ano }],
             });
           }
         });
@@ -249,5 +251,192 @@ router.get('/clientes', (req: Request, res: Response) => {
     }
   );
 });
+ */
+router.get('/clientes2', (req: Request, res: Response) => {
+  con.query(`SELECT codigo,cpf,rg,nome FROM ${publico}.cad_clie;`,(err: string, response:any)=>{
+    if(err) throw err;
+    res.json(response)
+
+  })
+});
+ 
+
+  //var resposta:any; 
+  //var resposta2:any; 
+  var saldo:any;
+  var outrocodigo:any;
+
+router.get('/estoque', async (req, res) => {
+        try {
+          var resposta1:any = await executarConsulta(con, publico, estoque);
+          var resposta2:any = await executarConsulta(con2, publico2, estoque2);
+       
+          const produtosComSaldos: any[] = [];
+
+          resposta1.forEach((produto1: any) => {
+            resposta2.forEach((produto2: any) => {
+             
+              if (produto1.outro_cod === produto2.outro_cod) {
+                const saldo = produto1.estoque + produto2.estoque;
+      
+                const produtoComSaldo = {
+                  codigo: produto1.codigo,
+                  outro_cod: produto1.outro_cod,
+                  estoque: saldo,
+                };
+      
+              //  produtosComSaldos.push(produtoComSaldo);
+
+              }
+              res.json({saldo})
+            });
+
+          });
+      
+          // Envie o objeto de saldos como resposta JSON
+          res.json(produtosComSaldos);
+       
+        } catch (error) {
+          res.status(500).json({ error: 'Erro na consulta ao banco de dados' });
+        }
+     
 
 
+
+          function comparar(resposta1:any, resposta2:any){
+
+            for(let i=0;i <= resposta1.length;i++){
+
+
+                const prod1 = resposta1[i];
+                    const prod2 = resposta2[i];
+                
+                  if(resposta1[i].outro_cod === resposta2[i].outrocod ){
+                    const saldo = resposta1[2].estoque  + resposta2[2].estoque;
+                    res.json({saldo})
+                  }else{
+                    return;
+                  }
+            }
+
+          
+          if(resposta1[2].outro_cod === resposta2[2].outro_cod){
+            saldo = resposta1[1].estoque + resposta2[2].estoque;
+            outrocodigo = resposta1[2].outro_cod;
+          }else{
+            res.send("erro!")
+          }
+            
+          return res.json({saldo,outrocodigo});
+      }
+      //comparar(resposta1,resposta2);
+    } );
+
+        function executarConsulta(conexao:any, publico:string, estoque:string) {
+              return new Promise((resolve, reject) => {
+                conexao.query(`
+                    SELECT cp.codigo, cp.outro_cod, ps.estoque
+                    FROM ${publico}.cad_prod cp 
+                    JOIN ${publico}.prod_tabprecos tp ON tp.PRODUTO = cp.CODIGO 
+                    JOIN ${estoque}.prod_setor ps ON ps.produto = cp.codigo;
+                  `, (err:any, response:any) => {
+                  if (err) {
+                    reject(err);
+                } else {
+                  resolve(response);
+                }
+            });
+          });
+        }
+
+        function updateProd( estoque:any,saldo:any,sku:any){
+          let sql =`
+            UPDATE ${estoque}.prod_saldo
+            SET ESTOQUE=${saldo}
+            WHERE SKU= ${sku};
+            ;
+          `
+          con.query(sql,(err:string, response:any)=>{
+            console.log('produto atualizado')
+          })
+        }
+       
+  
+  
+  
+   /*con2.query(` select cp.codigo,cp.outro_cod, ps.estoque
+              from  ${publico}.cad_prod cp 
+            join ${publico}.prod_tabprecos tp 
+            on tp.PRODUTO = cp.CODIGO join ${estoque}.prod_setor ps on ps.produto = cp.codigo 
+            ;`
+           , (err: string, response: any) => {
+   if (err) throw err;
+      resposta2 = response;
+      // res.json(resposta2[0])
+       })
+
+     
+    }*/
+  
+  
+    /*while(resposta1 !=undefined || resposta1 !=null){
+              for(let i=0;i <= resposta1.length || resposta2.length;i++){
+                 const prod1 = resposta1[i];
+                  const prod2 = resposta2[i];
+                
+                  if(resposta1[2].outro_cod === resposta2[2].outrocod ){
+                    const saldo = resposta1[2].estoque  + resposta2[2].estoque;
+                    res.json({saldo})
+                  }else{
+                    return;
+                  }
+            } 
+          }*/
+  
+  
+  
+  
+  
+  
+  
+  /*___________________estoque_real_____________________________________________________________________________________*/
+  
+  /*
+SELECT  est.CODIGO,est.SKU ,IF(est.estoque < 0, 0, est.estoque) AS ESTOQUE
+FROM 
+        (SELECT
+						P.CODIGO, p.OUTRO_COD SKU,
+						(SUM(PS.ESTOQUE) - 
+					(SELECT COALESCE(SUM((IF(PO.QTDE_SEPARADA > (PO.QUANTIDADE - PO.QTDE_MOV), PO.QTDE_SEPARADA, (PO.QUANTIDADE - PO.QTDE_MOV)) * PO.FATOR_QTDE) * IF(CO.TIPO = '5', -1, 1)), 0)
+								FROM space_eletro_vendas.cad_orca AS CO
+								LEFT OUTER JOIN space_eletro_vendas.pro_orca AS PO ON PO.ORCAMENTO = CO.CODIGO
+								WHERE CO.SITUACAO IN ('AI', 'AP', 'FP')
+								AND PO.PRODUTO = P.CODIGO)) AS estoque
+					FROM space_eletro_estoque.prod_setor AS PS
+					LEFT JOIN space_eletro_publico.cad_prod AS P ON P.CODIGO = PS.PRODUTO
+					INNER JOIN space_eletro_publico.cad_pgru AS G ON P.GRUPO = G.CODIGO
+					LEFT JOIN space_eletro_estoque.setores AS S ON PS.SETOR = S.CODIGO
+					WHERE S.EST_ATUAL = 'X' AND  P.OUTRO_COD in(Select OUTRO_COD from space_eletro_publico.cad_prod Where CODIGO = '1353')
+					GROUP BY P.CODIGO) AS est;
+
+
+
+
+
+SELECT  est.CODIGO,  IF(est.estoque < 0, 0, est.estoque) AS ESTOQUE
+FROM 
+        (SELECT
+						P.CODIGO, 
+						(SUM(PS.ESTOQUE) - 
+						(SELECT COALESCE(SUM((IF(PO.QTDE_SEPARADA > (PO.QUANTIDADE - PO.QTDE_MOV), PO.QTDE_SEPARADA, (PO.QUANTIDADE - PO.QTDE_MOV)) * PO.FATOR_QTDE) * IF(CO.TIPO = '5', -1, 1)), 0)
+								FROM space_eletro_vendas.cad_orca AS CO
+								LEFT OUTER JOIN space_eletro_vendas.pro_orca AS PO ON PO.ORCAMENTO = CO.CODIGO
+								WHERE CO.SITUACAO IN ('AI', 'AP', 'FP')
+								AND PO.PRODUTO = P.CODIGO)) AS estoque
+					FROM space_eletro_estoque.prod_setor AS PS
+					LEFT JOIN space_eletro_publico.cad_prod AS P ON P.CODIGO = PS.PRODUTO
+					INNER JOIN space_eletro_publico.cad_pgru AS G ON P.GRUPO = G.CODIGO
+					LEFT JOIN space_eletro_estoque.setores AS S ON PS.SETOR = S.CODIGO
+					WHERE S.EST_ATUAL = 'X' AND P.OUTRO_COD = '20.03.20505'
+					GROUP BY  p.outro_cod) AS est;
+          */
