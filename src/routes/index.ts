@@ -263,72 +263,52 @@ router.get('/clientes2', (req: Request, res: Response) => {
 
   //var resposta:any; 
   //var resposta2:any; 
-  var saldo:any;
+ var saldo:any;
   var outrocodigo:any;
-
+  var produto:any;
 router.get('/estoque', async (req, res) => {
         try {
           var resposta1:any = await executarConsulta(con, publico, estoque);
           var resposta2:any = await executarConsulta(con2, publico2, estoque2);
-       
-          const produtosComSaldos: any[] = [];
+          
+          //  const produtosComSaldos: any[] = [];
+               /* resposta1.forEach((produto1: any) => {
+                  resposta2.forEach((produto2: any) => {
+                    if (produto1.outro_cod === produto2.outro_cod) {
+                      saldo = produto1.estoque + produto2.estoque;
+                      const produtoComSaldo = {
+                        codigo: produto1.codigo,
+                        outro_cod: produto1.outro_cod,
+                        estoque: saldo,
+                      };
+                      produto =produtoComSaldo;
+                    }
+                  });
+                });
+                */
+                  for(let i=0;i < resposta1.length;i++){
+                          
+                           if(resposta1[i].outro_cod === resposta2[i].outro_cod){
+                                saldo = resposta1[i].estoque + resposta2[i].estoque;
+                           }else{
+                            return;
+                           }
+                           var skuCadastrado:any = await verificaSku(con,estoque,resposta1[i].outro_cod);
+                            if(skuCadastrado === null ){
 
-          resposta1.forEach((produto1: any) => {
-            resposta2.forEach((produto2: any) => {
-             
-              if (produto1.outro_cod === produto2.outro_cod) {
-                const saldo = produto1.estoque + produto2.estoque;
-      
-                const produtoComSaldo = {
-                  codigo: produto1.codigo,
-                  outro_cod: produto1.outro_cod,
-                  estoque: saldo,
-                };
-      
-              //  produtosComSaldos.push(produtoComSaldo);
 
-              }
-              res.json({saldo})
-            });
-
-          });
-      
-          // Envie o objeto de saldos como resposta JSON
-          res.json(produtosComSaldos);
-       
+                            }
+                           updateProd(estoque, saldo, resposta1[i].outro_cod)
+                           
+                           
+                           break;
+                          }
+                  
+                          res.json(saldo)
         } catch (error) {
           res.status(500).json({ error: 'Erro na consulta ao banco de dados' });
         }
-     
-
-
-
-          function comparar(resposta1:any, resposta2:any){
-
-            for(let i=0;i <= resposta1.length;i++){
-
-
-                const prod1 = resposta1[i];
-                    const prod2 = resposta2[i];
-                
-                  if(resposta1[i].outro_cod === resposta2[i].outrocod ){
-                    const saldo = resposta1[2].estoque  + resposta2[2].estoque;
-                    res.json({saldo})
-                  }else{
-                    return;
-                  }
-            }
-
-          
-          if(resposta1[2].outro_cod === resposta2[2].outro_cod){
-            saldo = resposta1[1].estoque + resposta2[2].estoque;
-            outrocodigo = resposta1[2].outro_cod;
-          }else{
-            res.send("erro!")
-          }
-            
-          return res.json({saldo,outrocodigo});
-      }
+        
       //comparar(resposta1,resposta2);
     } );
 
@@ -360,7 +340,31 @@ router.get('/estoque', async (req, res) => {
             console.log('produto atualizado')
           })
         }
-       
+
+          //verifca se ja tem um sku cadastrado
+        function verificaSku(conexao:any, estoque:any, sku:any){
+          return new Promise((resolve, reject)=>{
+            con.query(
+              ` SELECT ${sku} sku
+              FROM 
+              ${estoque}.prod_saldo;
+              `,(err:any,response:any)=>{
+                if(err){
+                  reject(err);
+                }else{
+                  resolve(response);
+                }
+              }
+            )
+
+          })
+                 
+       }
+       function insertSku(conexao:any,estoque:any, sku:any){
+          let sql = 
+          ``,()=>{}
+
+        }
   
   
   
